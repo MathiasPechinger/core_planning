@@ -42,8 +42,8 @@ target_link_libraries(
 )
 
 #link_directories(/usr/local/lib/zmp/minivan)
-#add_executable(ff_waypoint_follower nodes/ff_waypoint_follower.cpp nodes/ff_waypoint_follower_core.cpp nodes/HevCnt.cpp nodes/HevComm.cpp)
-#target_link_libraries(ff_waypoint_follower utilityh plannerh simuh CANUSB hevcontrol ${catkin_LIBRARIES})
+#add_executable(ff_waypoint_follower nodes/ff_waypoint_follower.cpp nodes/ff_waypoint_follower_core.cpp )
+#target_link_libraries(ff_waypoint_follower utilityh plannerh simuh CANUSB  ${catkin_LIBRARIES})
 
 add_dependencies(
   ff_waypoint_follower

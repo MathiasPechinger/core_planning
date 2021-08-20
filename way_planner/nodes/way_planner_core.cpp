@@ -253,134 +253,33 @@ void way_planner_core::callbackGetNodesList(const vector_map_msgs::NodeArray& ms
 {
 }
 
-void way_planner_core::UpdateRoadMap(const AutowareRoadNetwork& src_map, PlannerHNS::RoadNetwork& out_map)
-{
-  std::vector<UtilityHNS::AisanLanesFileReader::AisanLane> lanes;
-  for (unsigned int i = 0; i < src_map.lanes.data.size(); i++)
-  {
-    UtilityHNS::AisanLanesFileReader::AisanLane l;
-    l.BLID      =  src_map.lanes.data.at(i).blid;
-    l.BLID2     =  src_map.lanes.data.at(i).blid2;
-    l.BLID3     =  src_map.lanes.data.at(i).blid3;
-    l.BLID4     =  src_map.lanes.data.at(i).blid4;
-    l.BNID      =  src_map.lanes.data.at(i).bnid;
-    l.ClossID   =  src_map.lanes.data.at(i).clossid;
-    l.DID       =  src_map.lanes.data.at(i).did;
-    l.FLID      =  src_map.lanes.data.at(i).flid;
-    l.FLID2     =  src_map.lanes.data.at(i).flid2;
-    l.FLID3     =  src_map.lanes.data.at(i).flid3;
-    l.FLID4     =  src_map.lanes.data.at(i).flid4;
-    l.FNID      =  src_map.lanes.data.at(i).fnid;
-    l.JCT       =  src_map.lanes.data.at(i).jct;
-    l.LCnt      =  src_map.lanes.data.at(i).lcnt;
-    l.LnID      =  src_map.lanes.data.at(i).lnid;
-    l.Lno       =  src_map.lanes.data.at(i).lno;
-    l.Span      =  src_map.lanes.data.at(i).span;
-    l.RefVel    =  src_map.lanes.data.at(i).refvel;
-    l.LimitVel  =  src_map.lanes.data.at(i).limitvel;
-
-    lanes.push_back(l);
-  }
-
-  std::vector<UtilityHNS::AisanPointsFileReader::AisanPoints> points;
-
-  for (unsigned int i = 0; i < src_map.points.data.size(); i++)
-  {
-    UtilityHNS::AisanPointsFileReader::AisanPoints p;
-    double integ_part = src_map.points.data.at(i).l;
-    double deg = trunc(src_map.points.data.at(i).l);
-    double min = trunc((src_map.points.data.at(i).l - deg) * 100.0) / 60.0;
-    double sec = modf((src_map.points.data.at(i).l - deg) * 100.0, &integ_part) / 36.0;
-    double L =  deg + min + sec;
-
-    deg = trunc(src_map.points.data.at(i).b);
-    min = trunc((src_map.points.data.at(i).b - deg) * 100.0) / 60.0;
-    sec = modf((src_map.points.data.at(i).b - deg) * 100.0, &integ_part) / 36.0;
-    double B =  deg + min + sec;
-
-    p.B      = B;
-    p.Bx     = src_map.points.data.at(i).bx;
-    p.H      = src_map.points.data.at(i).h;
-    p.L      = L;
-    p.Ly     = src_map.points.data.at(i).ly;
-    p.MCODE1 = src_map.points.data.at(i).mcode1;
-    p.MCODE2 = src_map.points.data.at(i).mcode2;
-    p.MCODE3 = src_map.points.data.at(i).mcode3;
-    p.PID    = src_map.points.data.at(i).pid;
-    p.Ref    = src_map.points.data.at(i).ref;
-
-    points.push_back(p);
-  }
-
-
-  std::vector<UtilityHNS::AisanCenterLinesFileReader::AisanCenterLine> dts;
-  for (unsigned int i = 0; i < src_map.dtlanes.data.size(); i++)
-  {
-    UtilityHNS::AisanCenterLinesFileReader::AisanCenterLine dt;
-
-    dt.Apara = src_map.dtlanes.data.at(i).apara;
-    dt.DID   = src_map.dtlanes.data.at(i).did;
-    dt.Dir   = src_map.dtlanes.data.at(i).dir;
-    dt.Dist  = src_map.dtlanes.data.at(i).dist;
-    dt.LW    = src_map.dtlanes.data.at(i).lw;
-    dt.PID   = src_map.dtlanes.data.at(i).pid;
-    dt.RW    = src_map.dtlanes.data.at(i).rw;
-    dt.cant  = src_map.dtlanes.data.at(i).cant;
-    dt.r     = src_map.dtlanes.data.at(i).r;
-    dt.slope = src_map.dtlanes.data.at(i).slope;
-
-    dts.push_back(dt);
-  }
-
-  std::vector<UtilityHNS::AisanAreasFileReader::AisanArea> areas;
-  std::vector<UtilityHNS::AisanIntersectionFileReader::AisanIntersection> inters;
-  std::vector<UtilityHNS::AisanLinesFileReader::AisanLine> line_data;
-  std::vector<UtilityHNS::AisanStopLineFileReader::AisanStopLine> stop_line_data;
-  std::vector<UtilityHNS::AisanSignalFileReader::AisanSignal> signal_data;
-  std::vector<UtilityHNS::AisanVectorFileReader::AisanVector> vector_data;
-  std::vector<UtilityHNS::AisanCurbFileReader::AisanCurb> curb_data;
-  std::vector<UtilityHNS::AisanRoadEdgeFileReader::AisanRoadEdge> roadedge_data;
-  std::vector<UtilityHNS::AisanWayareaFileReader::AisanWayarea> way_area;
-  std::vector<UtilityHNS::AisanCrossWalkFileReader::AisanCrossWalk> crossing;
-  std::vector<UtilityHNS::AisanNodesFileReader::AisanNode> nodes_data;
-  std::vector<UtilityHNS::AisanDataConnFileReader::DataConn> conn_data;
-
-  PlannerHNS::GPSPoint origin;
-  PlannerHNS::MappingHelpers::ConstructRoadNetworkFromROSMessage(lanes, points, dts, inters, areas, line_data,
-    stop_line_data, signal_data, vector_data, curb_data, roadedge_data, way_area, crossing, nodes_data,
-    conn_data, origin, out_map);
-}
-
 bool way_planner_core::GenerateGlobalPlan(PlannerHNS::WayPoint& startPoint, PlannerHNS::WayPoint& goalPoint,
                                           std::vector<std::vector<PlannerHNS::WayPoint>>& generatedTotalPaths)
 {
   generatedTotalPaths.clear();
 
 #ifdef ENABLE_VISUALIZE_PLAN
-  if (m_PlanningVisualizeTree.size() > 0)
-  {
-    m_PlannerH.DeleteWaypoints(m_PlanningVisualizeTree);
-    m_AccumPlanLevels.markers.clear();
-    m_iCurrLevel = 0;
-    m_nLevelSize = 1;
+  std::vector<int> predefinedLanesIds;
+  double planning_distance = pow((m_CurrentPose.v), 2);
+  if (planning_distance < MIN_EXTRA_PLAN_DISTANCE) {
+    planning_distance = MIN_EXTRA_PLAN_DISTANCE;
   }
 
-  std::vector<int> predefinedLanesIds;
-  double ret = m_PlannerH.PlanUsingDP(startPoint, goalPoint,
-      MAX_GLOBAL_PLAN_DISTANCE, m_params.bEnableLaneChange, predefinedLanesIds,
-      m_Map, generatedTotalPaths, &m_PlanningVisualizeTree,
-      m_params.fallbackMinGoalDistanceTh);
+  double ret = m_PlannerH.PlanUsingDP(
+      startPoint, goalPoint, MAX_GLOBAL_PLAN_SEARCH_DISTANCE, planning_distance,
+      m_params.bEnableLaneChange, predefinedLanesIds, m_Map,
+      generatedTotalPaths);
 
-  m_pCurrGoal = PlannerHNS::MappingHelpers::GetClosestWaypointFromMap(goalPoint, m_Map);
+  m_pCurrGoal =
+      PlannerHNS::MappingHelpers::GetClosestWaypointFromMap(goalPoint, m_Map);
 
 #else
   std::vector<int> predefinedLanesIds;
 
-  double ret = m_PlannerH.PlanUsingDP(startPoint, goalPoint,
-          MAX_GLOBAL_PLAN_DISTANCE, m_params.bEnableLaneChange,
-          predefinedLanesIds,
-          m_Map, generatedTotalPaths, nullptr,
-          m_params.fallbackMinGoalDistanceTh);
+  double ret = m_PlannerH.PlanUsingDP(
+      startPoint, goalPoint, MAX_GLOBAL_PLAN_DISTANCE,
+      m_params.bEnableLaneChange, predefinedLanesIds, m_Map,
+      generatedTotalPaths, nullptr, m_params.fallbackMinGoalDistanceTh);
 #endif
 
   if (m_params.bEnableHMI)
@@ -668,29 +567,36 @@ void way_planner_core::PlannerMainLoop()
       bMakeNewPlan = HMI_DoOneStep();
     }
 
-    if ((m_params.mapSource == MAP_KML_FILE) && !m_bKmlMap)
+    if(m_params.mapSource == MAP_KML_FILE && !m_bKmlMap)
     {
       m_bKmlMap = true;
-      PlannerHNS::MappingHelpers::LoadKML(m_params.KmlMapPath, m_Map);
+      PlannerHNS::KmlMapLoader kml_loader;
+      kml_loader.LoadKML(m_params.KmlMapPath, m_Map);
       visualization_msgs::MarkerArray map_marker_array;
       ROSHelpers::ConvertFromRoadNetworkToAutowareVisualizeMapFormat(m_Map, map_marker_array);
       pub_MapRviz.publish(map_marker_array);
     }
-    else if ((m_params.mapSource == MAP_FOLDER) && !m_bKmlMap)
+    else if (m_params.mapSource == MAP_FOLDER && !m_bKmlMap)
     {
       m_bKmlMap = true;
-      PlannerHNS::MappingHelpers::ConstructRoadNetworkFromDataFiles(m_params.KmlMapPath, m_Map, true);
+      PlannerHNS::VectorMapLoader vec_loader(1, m_params.bEnableLaneChange);
+      vec_loader.LoadFromFile(m_params.KmlMapPath, m_Map);
       visualization_msgs::MarkerArray map_marker_array;
       ROSHelpers::ConvertFromRoadNetworkToAutowareVisualizeMapFormat(m_Map, map_marker_array);
 
       pub_MapRviz.publish(map_marker_array);
+
     }
-    else if (m_params.mapSource == MAP_AUTOWARE)
+    else if(m_params.mapSource == MAP_AUTOWARE)
     {
-      if (m_AwMap.bDtLanes && m_AwMap.bLanes && m_AwMap.bPoints)
+      if(m_AwMap.bDtLanes && m_AwMap.bLanes && m_AwMap.bPoints)
       {
         m_AwMap.bDtLanes = m_AwMap.bLanes = m_AwMap.bPoints = false;
-        UpdateRoadMap(m_AwMap, m_Map);
+
+        UtilityHNS::MapRaw map_raw;
+        map_raw.LoadFromData(m_AwMap.lanes, m_AwMap.dtlanes, m_AwMap.points);
+        PlannerHNS::VectorMapLoader vec_loader(1, m_params.bEnableLaneChange);
+        vec_loader.LoadFromData(map_raw, m_Map);
         visualization_msgs::MarkerArray map_marker_array;
         ROSHelpers::ConvertFromRoadNetworkToAutowareVisualizeMapFormat(m_Map, map_marker_array);
         pub_MapRviz.publish(map_marker_array);

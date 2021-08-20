@@ -20,10 +20,21 @@ find_package(
     sensor_msgs
     tf
     vector_map_msgs
+    lanelet2_extension
 )
 
 catkin_package(
   INCLUDE_DIRS include
+  CATKIN_DEPENDS
+    autoware_can_msgs
+    geometry_msgs
+    libwaypoint_follower
+    map_file
+    op_planner
+    op_ros_helpers
+    op_simu
+    op_utility
+    roscpp
 )
 
 include_directories(
@@ -79,11 +90,11 @@ add_dependencies(
 
 install(
   TARGETS
-    op_common_params
-    op_trajectory_generator
-    op_trajectory_evaluator
-    op_behavior_selector
-    op_motion_predictor
+  op_common_params
+  op_trajectory_generator
+  op_trajectory_evaluator
+  op_behavior_selector
+  op_motion_predictor
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}

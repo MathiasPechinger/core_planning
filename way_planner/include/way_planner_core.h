@@ -45,6 +45,8 @@
 #include <visualization_msgs/MarkerArray.h>
 
 #include "op_planner/MappingHelpers.h"
+#include "op_planner/VectorMapLoader.h"
+#include "op_planner/KmlMapLoader.h"
 #include "op_planner/PlanningHelpers.h"
 #include "op_planner/PlannerH.h"
 #include "ROSHelpers.h"
@@ -56,7 +58,8 @@
 namespace WayPlannerNS
 {
 
-#define MAX_GLOBAL_PLAN_DISTANCE 10000
+#define MAX_GLOBAL_PLAN_SEARCH_DISTANCE 10000
+#define MIN_EXTRA_PLAN_DISTANCE 100 //meters
 #define ENABLE_VISUALIZE_PLAN
 #define REPLANNING_DISTANCE 25
 
@@ -169,6 +172,8 @@ class way_planner_core
     way_planner_core();
     ~way_planner_core();
     void PlannerMainLoop();
+    PlannerHNS::VectorMapLoader vec_loader;
+    PlannerHNS::KmlMapLoader kml_loader;
 
   private:
     void GetTransformFromTF(const std::string parent_frame, const std::string child_frame,
@@ -195,7 +200,6 @@ class way_planner_core
       PlannerHNS::PlannerH m_PlannerH;
       std::vector<std::vector<PlannerHNS::WayPoint>> m_GeneratedTotalPaths;
 
-      void UpdateRoadMap(const AutowareRoadNetwork& src_map, PlannerHNS::RoadNetwork& out_map);
       bool GenerateGlobalPlan(PlannerHNS::WayPoint& startPoint, PlannerHNS::WayPoint& goalPoint,
               std::vector<std::vector<PlannerHNS::WayPoint>>& generatedTotalPaths);
       void VisualizeAndSend(const std::vector<std::vector<PlannerHNS::WayPoint>> generatedTotalPaths);

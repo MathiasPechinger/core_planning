@@ -9,6 +9,7 @@ find_package(
     geometry_msgs
     jsk_recognition_msgs
     libwaypoint_follower
+    message_generation
     op_planner
     op_ros_helpers
     op_simu
@@ -16,14 +17,28 @@ find_package(
     pcl_conversions
     pcl_ros
     roscpp
+    rospy
     std_msgs
     tf
     vector_map_msgs
+    lanelet2_extension
 )
 
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES op_global_planner
+  CATKIN_DEPENDS
+    autoware_can_msgs
+    geometry_msgs
+    libwaypoint_follower
+    op_planner
+    op_ros_helpers
+    op_simu
+    op_utility
+    roscpp
+    rospy
+    std_msgs
+    vector_map_msgs
 )
 
 include_directories(

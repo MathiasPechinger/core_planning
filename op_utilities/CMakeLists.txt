@@ -4,17 +4,18 @@ project(op_utilities)
 find_package(autoware_build_flags REQUIRED)
 
 find_package(
-  catkin REQUIRED COMPONENTS    
+  catkin REQUIRED COMPONENTS		
+    roscpp
     autoware_msgs
-    geometry_msgs    
+    autoware_can_msgs
+    geometry_msgs  	
     map_file
     op_planner
     op_ros_helpers
     op_utility
     pcl_conversions
-    rosbag
-    roscpp
     vector_map_msgs
+    lanelet2_extension
 )
 
 find_package(OpenCV REQUIRED)
@@ -29,6 +30,15 @@ find_package(Threads REQUIRED)
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES 
+  CATKIN_DEPENDS
+    geometry_msgs
+    map_file
+    op_planner
+    op_ros_helpers
+    op_utility
+    pcl_conversions
+    roscpp
+    vector_map_msgs
 )
 
 include_directories(
@@ -37,6 +47,14 @@ include_directories(
 )
 
 link_directories(lib)
+
+add_executable(
+  op_hmi_bridge
+  nodes/op_hmi_bridge/op_hmi_bridge.cpp
+  nodes/op_hmi_bridge/op_hmi_bridge_core.cpp
+  nodes/op_hmi_bridge/SocketServer.cpp
+)
+target_link_libraries(op_hmi_bridge ${catkin_LIBRARIES} ${PCL_LIBRARIES})
 
 add_executable(
   op_pose2tf
@@ -74,6 +92,7 @@ target_link_libraries(
 )
 
 add_dependencies(
+  op_hmi_bridge
   op_pose2tf
   op_data_logger
   op_bag_player
@@ -82,6 +101,7 @@ add_dependencies(
 
 install(
   TARGETS
+    op_hmi_bridge
     op_pose2tf
     op_data_logger
     op_bag_player
