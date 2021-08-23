@@ -92,6 +92,8 @@ BehaviorGen::BehaviorGen()
 	//Mapping Section
 	m_MapHandler.InitMapHandler(nh, "/op_common_params/mapSource",
 			"/op_common_params/mapFileName", "/op_common_params/lanelet2_origin");
+
+	m_CurrentPos.pBoundary = new PlannerHNS::Boundary;
 }
 
 BehaviorGen::~BehaviorGen()
@@ -108,6 +110,7 @@ BehaviorGen::~BehaviorGen()
 				"Max_Vel, Target_Vel, PID_Vel, T_cmd_Vel, C_cmd_Vel, Vel, Steer, X, Y, Z, Theta, Goal_Dist, Stop_Dist,"
 				, m_LogData);
 #endif
+	delete m_CurrentPos.pBoundary;
 }
 
 void BehaviorGen::UpdatePlanningParams(ros::NodeHandle& _nh)
@@ -449,7 +452,7 @@ bool BehaviorGen::CompareTrajectoriesWithIds(std::vector<std::vector<PlannerHNS:
 //----------------------------
 void BehaviorGen::callbackGetTrafficLightStatus(const autoware_msgs::TrafficLight& msg)
 {
-	std::cout << "Received Traffic Light Status : " << msg.traffic_light << std::endl;
+	// std::cout << "Received Traffic Light Status : " << msg.traffic_light << std::endl;
 	bNewLightStatus = true;
 	if(msg.traffic_light == 1) // green
 		m_CurrLightStatus = PlannerHNS::GREEN_LIGHT;
@@ -762,6 +765,8 @@ void BehaviorGen::MainLoop()
 			{
 				x.lightType = m_CurrLightStatus;
 			}
+
+			m_CurrentPos.pBoundary->type = m_BehaviorGenerator.getWayAreaType(m_Map);
 
 			m_CurrentBehavior = m_BehaviorGenerator.DoOneStep(avg_dt, m_CurrentPos, m_VehicleStatus, m_CurrTrafficLight, m_TrajectoryBestCost, 0 );
 
