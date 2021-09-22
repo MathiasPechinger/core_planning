@@ -404,7 +404,7 @@ bool TrajectoryEvalCore::FindBestLane(std::vector<PlannerHNS::TrajectoryCost> tc
 
 void TrajectoryEvalCore::MainLoop()
 {
-	ros::Rate loop_rate(50);
+	ros::Rate loop_rate(10);
 
 	PlannerHNS::WayPoint prevState, state_change;
 
