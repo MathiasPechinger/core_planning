@@ -455,8 +455,19 @@ void TrajectoryEvalCore::MainLoop()
 						planningParams.minFollowingDistance += m_AdditionalFollowDistance;
 					}
 
-					PlannerHNS::TrajectoryCost tc = m_TrajectoryCostsCalculator.doOneStep(m_LanesRollOutsToUse.at(0), m_GlobalPathSections.at(0), m_CurrentPos,
-							planningParams, m_CarInfo,m_VehicleStatus, m_PredictedObjects, !m_bUseMoveingObjectsPrediction, m_CurrentBehavior.iTrajectory, m_bKeepCurrentIfPossible);
+					PlannerHNS::TrajectoryCost tc = 
+						m_TrajectoryCostsCalculator.doOneStep(
+							m_LanesRollOutsToUse.at(0),  	// roll out info
+							m_GlobalPathSections.at(0), 	// global path
+							m_CurrentPos,					// current ego pose
+							planningParams, 				// planning params
+							m_CarInfo,
+							m_VehicleStatus, 		
+							m_PredictedObjects, 
+							!m_bUseMoveingObjectsPrediction, 
+							m_CurrentBehavior.iTrajectory, 
+							m_bKeepCurrentIfPossible);
+
 					tcs.push_back(tc);
 
 					for(unsigned int i=0; i < m_TrajectoryCostsCalculator.local_roll_outs_.size(); i++)
