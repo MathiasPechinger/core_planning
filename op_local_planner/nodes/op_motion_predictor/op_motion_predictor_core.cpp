@@ -42,6 +42,7 @@ MotionPrediction::MotionPrediction()
 
 	pub_predicted_objects_trajectories = nh.advertise<autoware_msgs::DetectedObjectArray>("/predicted_objects", 1);
 	pub_PredictedTrajectoriesRviz = nh.advertise<visualization_msgs::MarkerArray>("/predicted_trajectories_rviz", 1);
+	pub_EgoTrajectoryRviz = nh.advertise<visualization_msgs::MarkerArray>("/ego_trajectory_rviz", 1);
 	pub_CurbsRviz					= nh.advertise<visualization_msgs::MarkerArray>("/map_curbs_rviz", 1);
 	pub_ParticlesRviz = nh.advertise<visualization_msgs::MarkerArray>("prediction_particles", 1);
 	pub_GeneratedParticlesRviz = nh.advertise<visualization_msgs::MarkerArray>("generated_particles", 1);
@@ -49,8 +50,10 @@ MotionPrediction::MotionPrediction()
 	pub_TargetPointsRviz = nh.advertise<visualization_msgs::MarkerArray>("target_points_on_trajs", 1);
 
 //	sub_StepSignal = nh.subscribe("/pred_step_signal", 		1, &MotionPrediction::callbackGetStepForwardSignals, 		this);
-	sub_tracked_objects	= nh.subscribe(m_TrackedObjectsTopicName, 	1,	&MotionPrediction::callbackGetTrackedObjects, 		this);
-	sub_current_pose 	= nh.subscribe("/current_pose", 1,	&MotionPrediction::callbackGetCurrentPose, 		this);
+	sub_tracked_objects		= nh.subscribe(m_TrackedObjectsTopicName, 	1,	&MotionPrediction::callbackGetTrackedObjects, 		this);
+	sub_current_pose 		= nh.subscribe("/current_pose", 1,	&MotionPrediction::callbackGetCurrentPose, 		this);
+	sub_current_trajectory 	= nh.subscribe("/op_local_selected_trajectory", 	1,	&MotionPrediction::callbackGetCurrentTrajectory, this);
+
 
 	m_VelHandler.InitVelocityHandler(nh, m_CarInfo, &m_VehicleStatus, &m_CurrentPos);
 
@@ -211,14 +214,16 @@ void MotionPrediction::callbackGetTrackedObjects(const autoware_msgs::DetectedOb
 		}
 	}
 
+	// used for simulation and debugging
 	if(m_PredictBeh.m_bStepByStep && m_bGoNextStep)
 	{
 		m_bGoNextStep = false;
-		m_PredictBeh.DoOneStep(m_TrackedObjects, m_CurrentPos, m_PlanningParams.minSpeed, m_CarInfo.max_deceleration,  m_Map);
+		m_PredictBeh.DoOneStep(m_TrackedObjects, m_CurrentPos, m_PlanningParams.minSpeed, m_CarInfo.max_deceleration,  m_Map, m_CarInfo, m_VehicleStatus, m_localTrajectory);
 	}
+	// used for actual driving
 	else if(!m_PredictBeh.m_bStepByStep)
 	{
-		m_PredictBeh.DoOneStep(m_TrackedObjects, m_CurrentPos, m_PlanningParams.minSpeed, m_CarInfo.max_deceleration,  m_Map);
+		m_PredictBeh.DoOneStep(m_TrackedObjects, m_CurrentPos, m_PlanningParams.minSpeed, m_CarInfo.max_deceleration,  m_Map, m_CarInfo, m_VehicleStatus, m_localTrajectory);
 	}
 
 	m_PredictedResultsResults.objects.clear();
@@ -248,7 +253,8 @@ void MotionPrediction::callbackGetTrackedObjects(const autoware_msgs::DetectedOb
 	m_PredictedResultsResults.header.stamp = ros::Time().now();
 	pub_predicted_objects_trajectories.publish(m_PredictedResultsResults);
 
-	VisualizePrediction();
+	VisualizePrediction(m_PredictBeh.m_ParticleInfo, false);
+	VisualizePrediction(m_PredictBeh.m_EgoInfo, true);
 }
 
 void MotionPrediction::GenerateCurbsObstacles(std::vector<PlannerHNS::DetectedObject>& curb_obstacles)
@@ -289,17 +295,8 @@ void MotionPrediction::GenerateCurbsObstacles(std::vector<PlannerHNS::DetectedOb
 	}
 }
 
-void MotionPrediction::VisualizePrediction()
+void MotionPrediction::VisualizePrediction(std::vector<PlannerHNS::ObjParticles*> objectInfo, bool isEgoVehicle)
 {
-//	m_all_pred_paths.clear();
-//	for(unsigned int i=0; i< m_PredictBeh.m_PredictedObjects.size(); i++)
-//		m_all_pred_paths.insert(m_all_pred_paths.begin(), m_PredictBeh.m_PredictedObjects.at(i).predTrajectories.begin(), m_PredictBeh.m_PredictedObjects.at(i).predTrajectories.end());
-//
-//	PlannerHNS::ROSHelpers::ConvertPredictedTrqajectoryMarkers(m_all_pred_paths, m_PredictedTrajectoriesActual, m_PredictedTrajectoriesDummy);
-//	pub_PredictedTrajectoriesRviz.publish(m_PredictedTrajectoriesActual);
-//
-
-
 	m_all_pred_paths.clear();
 	m_particles_points.clear();
 	visualization_msgs::MarkerArray behavior_rviz_arr;
@@ -307,20 +304,21 @@ void MotionPrediction::VisualizePrediction()
 
 	m_TargetPointsOnTrajectories.markers.clear();
 
-	for(unsigned int i=0; i< m_PredictBeh.m_ParticleInfo.size(); i++)
+	// for(unsigned int i=0; i< m_PredictBeh.m_ParticleInfo.size(); i++)
+	for(unsigned int i=0; i< objectInfo.size(); i++)
 	{
-		m_all_pred_paths.insert(m_all_pred_paths.begin(), m_PredictBeh.m_ParticleInfo.at(i)->obj.predTrajectories.begin(), m_PredictBeh.m_ParticleInfo.at(i)->obj.predTrajectories.end());
+		m_all_pred_paths.insert(m_all_pred_paths.begin(), objectInfo.at(i)->obj.predTrajectories.begin(), objectInfo.at(i)->obj.predTrajectories.end());
 
-		for(unsigned int t=0; t < m_PredictBeh.m_ParticleInfo.at(i)->m_TrajectoryTracker.size(); t++)
+		for(unsigned int t=0; t < objectInfo.at(i)->m_TrajectoryTracker.size(); t++)
 		{
-			PlannerHNS::WayPoint tt_wp = m_PredictBeh.m_ParticleInfo.at(i)->m_TrajectoryTracker.at(t)->followPoint;
+			PlannerHNS::WayPoint tt_wp = objectInfo.at(i)->m_TrajectoryTracker.at(t)->followPoint;
 			visualization_msgs::Marker targetPoint = PlannerHNS::ROSHelpers::CreateGenMarker(tt_wp.pos.x,tt_wp.pos.y,tt_wp.pos.z,0,0,0.0,1,0.5,t,"target_trajectory_point", visualization_msgs::Marker::SPHERE);
 			m_TargetPointsOnTrajectories.markers.push_back(targetPoint);
 
 			PlannerHNS::WayPoint p_wp;
-			for(unsigned int j=0; j < m_PredictBeh.m_ParticleInfo.at(i)->m_TrajectoryTracker.at(t)->m_CurrParts.size(); j++)
+			for(unsigned int j=0; j < objectInfo.at(i)->m_TrajectoryTracker.at(t)->m_CurrParts.size(); j++)
 			{
-				PlannerHNS::Particle* pPart = &m_PredictBeh.m_ParticleInfo.at(i)->m_TrajectoryTracker.at(t)->m_CurrParts.at(j);
+				PlannerHNS::Particle* pPart = &objectInfo.at(i)->m_TrajectoryTracker.at(t)->m_CurrParts.at(j);
 				p_wp = pPart->pose;
 				if(pPart->beh == PlannerHNS::BEH_STOPPING_STATE)
 					p_wp.bDir = PlannerHNS::STANDSTILL_DIR;
@@ -339,12 +337,12 @@ void MotionPrediction::VisualizePrediction()
 			}
 		}
 
-		if(m_PredictBeh.m_ParticleInfo.at(i) != nullptr && m_PredictBeh.m_ParticleInfo.at(i)->best_behavior_track != nullptr)
+		if(objectInfo.at(i) != nullptr && objectInfo.at(i)->best_behavior_track != nullptr)
 		{
 			visualization_msgs::Marker behavior_rviz;
 			std::ostringstream ns_beh;
 			ns_beh << "pred_beh_state_" << i;
-			PlannerHNS::ROSHelpers::VisualizeIntentionState(m_PredictBeh.m_ParticleInfo.at(i)->obj.center, m_PredictBeh.m_ParticleInfo.at(i)->best_behavior_track->best_beh_by_p, behavior_rviz, ns_beh.str(), 3);
+			PlannerHNS::ROSHelpers::VisualizeIntentionState(objectInfo.at(i)->obj.center, objectInfo.at(i)->best_behavior_track->best_beh_by_p, behavior_rviz, ns_beh.str(), 3);
 			behavior_rviz_arr.markers.push_back(behavior_rviz);
 		}
 	}
@@ -360,25 +358,30 @@ void MotionPrediction::VisualizePrediction()
 		PlannerHNS::PlanningHelpers::FixPathDensity(path, 1.0);
 	}
 
-	PlannerHNS::ROSHelpers::ConvertPredictedTrqajectoryMarkers(m_all_pred_paths, m_PredictedTrajectoriesActual, m_PredictedTrajectoriesDummy);
+	PlannerHNS::ROSHelpers::ConvertPredictedTrqajectoryMarkers(m_all_pred_paths, m_PredictedTrajectoriesActual, m_PredictedTrajectoriesDummy, isEgoVehicle);
+	
+	if (isEgoVehicle){
+		pub_EgoTrajectoryRviz.publish(m_PredictedTrajectoriesActual);
+		return;
+	}
 	pub_PredictedTrajectoriesRviz.publish(m_PredictedTrajectoriesActual);
 
 	m_generated_particles_points.clear();
-	for(unsigned int i=0; i< m_PredictBeh.m_ParticleInfo.size(); i++)
+	for(unsigned int i=0; i< objectInfo.size(); i++)
 	{
 		PlannerHNS::WayPoint p_wp;
-		for(unsigned int t=0; t < m_PredictBeh.m_ParticleInfo.at(i)->m_AllGeneratedParticles.size(); t++)
+		for(unsigned int t=0; t < objectInfo.at(i)->m_AllGeneratedParticles.size(); t++)
 		{
-			p_wp = m_PredictBeh.m_ParticleInfo.at(i)->m_AllGeneratedParticles.at(t).pose;
-			if(m_PredictBeh.m_ParticleInfo.at(i)->m_AllGeneratedParticles.at(t).beh == PlannerHNS::BEH_STOPPING_STATE)
+			p_wp = objectInfo.at(i)->m_AllGeneratedParticles.at(t).pose;
+			if(objectInfo.at(i)->m_AllGeneratedParticles.at(t).beh == PlannerHNS::BEH_STOPPING_STATE)
 			{
 				p_wp.bDir = PlannerHNS::STANDSTILL_DIR;
 			}
-			else if(m_PredictBeh.m_ParticleInfo.at(i)->m_AllGeneratedParticles.at(t).beh == PlannerHNS::BEH_FORWARD_STATE)
+			else if(objectInfo.at(i)->m_AllGeneratedParticles.at(t).beh == PlannerHNS::BEH_FORWARD_STATE)
 			{
 				p_wp.bDir = PlannerHNS::FORWARD_DIR;
 			}
-			else if(m_PredictBeh.m_ParticleInfo.at(i)->m_AllGeneratedParticles.at(t).beh == PlannerHNS::BEH_YIELDING_STATE)
+			else if(objectInfo.at(i)->m_AllGeneratedParticles.at(t).beh == PlannerHNS::BEH_YIELDING_STATE)
 			{
 				p_wp.bDir = PlannerHNS::BACKWARD_DIR;
 			}
@@ -390,6 +393,14 @@ void MotionPrediction::VisualizePrediction()
 
 
 	pub_TargetPointsRviz.publish(m_TargetPointsOnTrajectories);
+}
+
+void MotionPrediction::callbackGetCurrentTrajectory(const autoware_msgs::LaneConstPtr &msg)
+{
+	m_localTrajectory.clear();
+	PlannerHNS::ROSHelpers::ConvertFromAutowareLaneToLocalLane(*msg, m_localTrajectory);
+	// std::cout << "Receive new Trajectory From Behavior Selector : " << msg->waypoints.size() << std::endl;
+	// bNewTrajectory = true;
 }
 
 void MotionPrediction::MainLoop()

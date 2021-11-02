@@ -31,6 +31,7 @@
 #include "op_utility/DataRW.h"
 #include "op_ros_helpers/ROSMapHandler.h"
 #include "op_ros_helpers/ROSVelocityHandler.h"
+#include "op_planner/BehaviorPrediction.h"
 
 namespace MotionPredictorNS
 {
@@ -79,6 +80,8 @@ protected:
 
 	visualization_msgs::MarkerArray m_TargetPointsOnTrajectories;
 
+	std::vector<PlannerHNS::WayPoint> m_localTrajectory;
+
 	double m_DistanceBetweenCurbs;
 	double m_VisualizationTime;
 
@@ -89,7 +92,8 @@ protected:
 
 	ros::NodeHandle nh;
 	ros::Publisher pub_predicted_objects_trajectories;
-	ros::Publisher pub_PredictedTrajectoriesRviz ;
+	ros::Publisher pub_PredictedTrajectoriesRviz;
+	ros::Publisher pub_EgoTrajectoryRviz;
 	ros::Publisher pub_CurbsRviz ;
 	ros::Publisher pub_ParticlesRviz;
 	ros::Publisher pub_GeneratedParticlesRviz;
@@ -100,14 +104,16 @@ protected:
 	ros::Subscriber sub_tracked_objects;
 	ros::Subscriber sub_current_pose ;
 	ros::Subscriber sub_StepSignal;
+	ros::Subscriber sub_current_trajectory;
 
 	// Callback function for subscriber.
 	void callbackGetTrackedObjects(const autoware_msgs::DetectedObjectArrayConstPtr& msg);
 	void callbackGetCurrentPose(const geometry_msgs::PoseStampedConstPtr& msg);
 	void callbackGetStepForwardSignals(const geometry_msgs::TwistStampedConstPtr& msg);
+	void callbackGetCurrentTrajectory(const autoware_msgs::LaneConstPtr &msg);
 
 	//Helper functions
-	void VisualizePrediction();
+	void VisualizePrediction(std::vector<PlannerHNS::ObjParticles*> objectInfo, bool isEgoVehicle);
 	void UpdatePlanningParams(ros::NodeHandle& _nh);
 	void GenerateCurbsObstacles(std::vector<PlannerHNS::DetectedObject>& curb_obstacles);
 

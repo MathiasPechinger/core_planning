@@ -404,7 +404,7 @@ bool TrajectoryEvalCore::FindBestLane(std::vector<PlannerHNS::TrajectoryCost> tc
 
 void TrajectoryEvalCore::MainLoop()
 {
-	ros::Rate loop_rate(10);
+	ros::Rate loop_rate(100);
 
 	PlannerHNS::WayPoint prevState, state_change;
 
@@ -455,8 +455,8 @@ void TrajectoryEvalCore::MainLoop()
 						planningParams.minFollowingDistance += m_AdditionalFollowDistance;
 					}
 
-					PlannerHNS::TrajectoryCost tc = 
-						m_TrajectoryCostsCalculator.doOneStep(
+					// calculate the costs
+					PlannerHNS::TrajectoryCost tc = m_TrajectoryCostsCalculator.doOneStep(
 							m_LanesRollOutsToUse.at(0),  	// roll out info
 							m_GlobalPathSections.at(0), 	// global path
 							m_CurrentPos,					// current ego pose
@@ -470,6 +470,7 @@ void TrajectoryEvalCore::MainLoop()
 
 					tcs.push_back(tc);
 
+					// fill autoware msg structure
 					for(unsigned int i=0; i < m_TrajectoryCostsCalculator.local_roll_outs_.size(); i++)
 					{
 							autoware_msgs::Lane lane;
@@ -483,10 +484,18 @@ void TrajectoryEvalCore::MainLoop()
 							local_lanes.lanes.push_back(lane);
 					}
 
-//					collected_local_roll_outs.push_back(m_TrajectoryCostsCalculator.local_roll_outs_);
-//					collected_trajectory_costs.push_back(m_TrajectoryCostsCalculator.trajectory_costs_);
-					PlannerHNS::ROSHelpers::TrajectoriesToColoredMarkers(m_TrajectoryCostsCalculator.local_roll_outs_, m_TrajectoryCostsCalculator.trajectory_costs_, tc.index, all_rollOuts);
-					collision_points.insert(collision_points.end(), m_TrajectoryCostsCalculator.collision_points_.begin(), m_TrajectoryCostsCalculator.collision_points_.end());
+					// collected_local_roll_outs.push_back(m_TrajectoryCostsCalculator.local_roll_outs_);
+					// collected_trajectory_costs.push_back(m_TrajectoryCostsCalculator.trajectory_costs_);
+
+					PlannerHNS::ROSHelpers::TrajectoriesToColoredMarkers(m_TrajectoryCostsCalculator.local_roll_outs_, 
+						m_TrajectoryCostsCalculator.trajectory_costs_, 
+						tc.index, 
+						all_rollOuts);
+
+					collision_points.insert(collision_points.end(), 
+						m_TrajectoryCostsCalculator.collision_points_.begin(), 
+						m_TrajectoryCostsCalculator.collision_points_.end());
+
 					PlannerHNS::ROSHelpers::ConvertFromPlannerHRectangleToAutowareRviz(m_TrajectoryCostsCalculator.safety_border_.points, safety_box);
 
 				}

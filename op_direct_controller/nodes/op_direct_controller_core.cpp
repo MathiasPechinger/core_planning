@@ -202,7 +202,7 @@ void DirectController::callbackGetCurrentTrajectory(const autoware_msgs::LaneCon
 {
 	m_FollowingTrajectory.clear();
 	PlannerHNS::ROSHelpers::ConvertFromAutowareLaneToLocalLane(*msg, m_FollowingTrajectory);
-	std::cout << "Receive new Trajectory From Behavior Selector : " << msg->waypoints.size() << std::endl;
+	// std::cout << "Receive new Trajectory From Behavior Selector : " << msg->waypoints.size() << std::endl;
 	bNewTrajectory = true;
 }
 
