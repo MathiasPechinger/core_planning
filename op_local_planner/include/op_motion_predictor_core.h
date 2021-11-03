@@ -39,6 +39,7 @@ namespace MotionPredictorNS
 class MotionPrediction
 {
 protected:
+	int m_rosrate;
 	PlannerHNS::WayPoint m_CurrentPos;
 	bool bNewCurrentPos;
 

@@ -90,6 +90,8 @@ void TrajectoryEvalCore::UpdatePlanningParams(ros::NodeHandle& _nh)
 	_nh.getParam("/op_common_params/minVelocity", m_PlanningParams.minSpeed);
 	_nh.getParam("/op_common_params/maxLocalPlanDistance", m_PlanningParams.microPlanDistance);
 
+	_nh.getParam("/op_common_params/control_frequency", m_rosrate);
+
 	_nh.getParam("/op_common_params/pathDensity", m_PlanningParams.pathDensity);
 
 	_nh.getParam("/op_common_params/rollOutDensity", m_PlanningParams.rollOutDensity);
@@ -404,7 +406,7 @@ bool TrajectoryEvalCore::FindBestLane(std::vector<PlannerHNS::TrajectoryCost> tc
 
 void TrajectoryEvalCore::MainLoop()
 {
-	ros::Rate loop_rate(100);
+	ros::Rate loop_rate(m_rosrate);
 
 	PlannerHNS::WayPoint prevState, state_change;
 

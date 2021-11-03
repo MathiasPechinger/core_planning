@@ -71,6 +71,8 @@ void TrajectoryGen::UpdatePlanningParams(ros::NodeHandle& _nh)
 	_nh.getParam("/op_trajectory_generator/startFromFrontAxel", bFrontAxelStart);
 	_nh.getParam("/op_trajectory_generator/enableForwardSimulation", m_bEnableForwardSimulation);
 
+	_nh.getParam("/op_common_params/control_frequency", m_rosrate);
+
 	_nh.getParam("/op_common_params/enableSwerving", m_PlanningParams.enableSwerving);
 	if(m_PlanningParams.enableSwerving)
 	{
@@ -270,7 +272,7 @@ void TrajectoryGen::GenerateSmoothTrajectory(const std::vector<std::vector<std::
 
 void TrajectoryGen::MainLoop()
 {
-	ros::Rate loop_rate(50);
+	ros::Rate loop_rate(m_rosrate);
 
 	PlannerHNS::WayPoint prevState, state_change;
 

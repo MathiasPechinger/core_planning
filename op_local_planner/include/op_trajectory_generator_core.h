@@ -34,6 +34,8 @@ namespace TrajectoryGeneratorNS
 class TrajectoryGen
 {
 protected:
+	int m_rosrate;
+
 	PlannerHNS::PlannerH m_Planner;
 	geometry_msgs::Pose m_OriginPos;
 	PlannerHNS::WayPoint m_InitPos;

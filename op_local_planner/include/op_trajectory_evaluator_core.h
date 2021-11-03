@@ -39,6 +39,8 @@ class TrajectoryEvalCore
 {
 protected:
 
+	int m_rosrate;
+
     PlannerHNS::TrajectoryEvaluator m_TrajectoryCostsCalculator;
 	bool m_bUseMoveingObjectsPrediction;
 

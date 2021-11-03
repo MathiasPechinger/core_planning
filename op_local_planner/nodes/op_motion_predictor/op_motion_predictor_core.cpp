@@ -84,6 +84,8 @@ void MotionPrediction::UpdatePlanningParams(ros::NodeHandle& _nh)
 	_nh.getParam("/op_common_params/enableTrafficLightBehavior", m_PlanningParams.enableTrafficLightBehavior);
 	_nh.getParam("/op_common_params/enableStopSignBehavior", m_PlanningParams.enableStopSignBehavior);
 
+	_nh.getParam("/op_common_params/control_frequency", m_rosrate);
+
 	_nh.getParam("/op_common_params/maxVelocity", m_PlanningParams.maxSpeed);
 	_nh.getParam("/op_common_params/minVelocity", m_PlanningParams.minSpeed);
 	_nh.getParam("/op_common_params/maxLocalPlanDistance", m_PlanningParams.microPlanDistance);
@@ -405,7 +407,7 @@ void MotionPrediction::callbackGetCurrentTrajectory(const autoware_msgs::LaneCon
 
 void MotionPrediction::MainLoop()
 {
-	ros::Rate loop_rate(50);
+	ros::Rate loop_rate(m_rosrate);
 
 	while (ros::ok())
 	{
