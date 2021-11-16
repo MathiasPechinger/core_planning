@@ -65,6 +65,8 @@ protected:
 
 	std::vector<PlannerHNS::DetectedObject> m_PredictedObjects;
 	bool bPredictedObjects;
+	bool bNewObjectPrediction;
+	unsigned int m_trajectoryID;
 
 
 	struct timespec m_PlanningTimer;

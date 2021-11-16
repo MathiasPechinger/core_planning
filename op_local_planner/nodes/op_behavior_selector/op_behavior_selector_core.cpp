@@ -38,8 +38,10 @@ BehaviorGen::BehaviorGen()
 	bNewLightStatus = false;
 	bNewLightSignal = false;
 	bBestCost = false;
+	bNewBestCost = false;
 	m_bRequestNewPlanSent = false;
 	m_bShowActualDrivingPath = false;
+	m_EvaluationID = 0;
 
 	ros::NodeHandle _nh;
 	UpdatePlanningParams(_nh);
@@ -52,6 +54,7 @@ BehaviorGen::BehaviorGen()
 	m_OriginPos.position.z  = transform.getOrigin().z();
 
 	pub_TotalLocalPath = nh.advertise<autoware_msgs::Lane>("op_local_selected_trajectory", 1,true);
+	pub_EvalLocalPath = nh.advertise<autoware_msgs::Lane>("op_local_evaluation_trajectory", 1,true);
 	pub_LocalPath = nh.advertise<autoware_msgs::Lane>("final_waypoints", 1,true);
 	pub_LocalBasePath = nh.advertise<autoware_msgs::Lane>("base_waypoints", 1,true);
 	pub_ClosestIndex = nh.advertise<std_msgs::Int32>("closest_waypoint", 1,true);
@@ -318,6 +321,8 @@ void BehaviorGen::callbackGetGlobalPlannerPath(const autoware_msgs::LaneArrayCon
 void BehaviorGen::callbackGetLocalTrajectoryCost(const autoware_msgs::LaneConstPtr& msg)
 {
 	bBestCost = true;
+	bNewBestCost = true;
+	m_LocalTrajectoryIdReceived = msg->increment;
 	m_TrajectoryBestCost.bBlocked = msg->is_blocked;
 	m_TrajectoryBestCost.lane_index = msg->lane_id;
 	m_TrajectoryBestCost.index = msg->lane_index;
@@ -623,13 +628,27 @@ void BehaviorGen::SendLocalPlanningTopics()
 		pub_LocalBasePath.publish(m_CurrentTrajectoryToSend);
 		pub_LocalPath.publish(m_CurrentTrajectoryToSend);
 	}
+	
+	// use static to keep the trajectory for one feedback loop from
+	// the motion predictor and trajectory evaluator
+	static autoware_msgs::Lane curr_slected_trajectory;
 
-	if(m_CurrentBehavior.bNewPlan)
+	bool trajectoryEvalValid = true;
+	if (m_LocalTrajectoryIdReceived != m_EvaluationID-1){
+		ROS_ERROR("Trajectory Evaluation to INVALID!");
+		trajectoryEvalValid = false;
+	}
+
+	// check for valid trajectories
+	if(m_CurrentBehavior.bNewPlan && trajectoryEvalValid)
 	{
-		autoware_msgs::Lane curr_slected_trajectory;
-		PlannerHNS::ROSHelpers::ConvertFromLocalLaneToAutowareLane(m_BehaviorGenerator.m_Path, curr_slected_trajectory, 0);
 		pub_TotalLocalPath.publish(curr_slected_trajectory);
 	}
+	
+	PlannerHNS::ROSHelpers::ConvertFromLocalLaneToAutowareLane(m_BehaviorGenerator.m_Path, curr_slected_trajectory, 0);
+	curr_slected_trajectory.increment = m_EvaluationID;
+	m_EvaluationID++;
+	pub_EvalLocalPath.publish(curr_slected_trajectory);
 
 	autoware_msgs::ExtractedPosition _signal;
 
@@ -758,8 +777,9 @@ void BehaviorGen::MainLoop()
 			m_MapHandler.LoadMap(m_Map, m_PlanningParams.enableLaneChange);
 		}
 
-		if(bNewCurrentPos && m_GlobalPathsToUse.size() > 0)
+		if(bNewCurrentPos && m_GlobalPathsToUse.size() > 0 && bNewBestCost)
 		{
+			bNewBestCost = false;
 
 			for(auto& x: m_CurrTrafficLight)
 			{

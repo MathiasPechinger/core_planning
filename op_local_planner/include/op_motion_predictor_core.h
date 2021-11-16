@@ -82,6 +82,7 @@ protected:
 	visualization_msgs::MarkerArray m_TargetPointsOnTrajectories;
 
 	std::vector<PlannerHNS::WayPoint> m_localTrajectory;
+	unsigned int m_localTrajectoryID;
 
 	double m_DistanceBetweenCurbs;
 	double m_VisualizationTime;

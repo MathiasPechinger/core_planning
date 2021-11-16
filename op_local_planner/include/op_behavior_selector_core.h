@@ -67,6 +67,10 @@ protected: //Planning Related variables
 
 	PlannerHNS::TrajectoryCost m_TrajectoryBestCost;
 	bool bBestCost;
+	bool bNewBestCost;
+	unsigned int m_LocalTrajectoryIdReceived;
+	unsigned int m_EvaluationID;
+
 
 	PlannerHNS::DecisionMaker m_BehaviorGenerator;
 	PlannerHNS::BehaviorState m_CurrentBehavior;
@@ -98,6 +102,7 @@ protected: //Planning Related variables
 
 	//define publishers
 	ros::Publisher pub_TotalLocalPath;
+	ros::Publisher pub_EvalLocalPath;
 	ros::Publisher pub_LocalPath;
 	ros::Publisher pub_LocalBasePath;
 	ros::Publisher pub_ClosestIndex;

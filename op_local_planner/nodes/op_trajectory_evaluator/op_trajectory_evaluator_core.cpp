@@ -266,6 +266,9 @@ void TrajectoryEvalCore::callbackGetPredictedObjects(const autoware_msgs::Detect
 {
 	m_PredictedObjects.clear();
 	bPredictedObjects = true;
+	bNewObjectPrediction = true;
+	if (msg->objects.size()!=0)
+		m_trajectoryID = msg->objects.at(0).header.seq;
 
 	PlannerHNS::DetectedObject obj;
 	for(unsigned int i = 0 ; i <msg->objects.size(); i++)
@@ -406,7 +409,8 @@ bool TrajectoryEvalCore::FindBestLane(std::vector<PlannerHNS::TrajectoryCost> tc
 
 void TrajectoryEvalCore::MainLoop()
 {
-	ros::Rate loop_rate(m_rosrate);
+	// the predictor needs to run at least twice as fast as the behavior selector!
+	ros::Rate loop_rate(m_rosrate*10);
 
 	PlannerHNS::WayPoint prevState, state_change;
 
@@ -415,9 +419,10 @@ void TrajectoryEvalCore::MainLoop()
 		ros::spinOnce();
 
 
-		if(bNewCurrentPos)
+		if(bNewCurrentPos && bNewObjectPrediction)
 		{
 			m_GlobalPathSections.clear();
+			bNewObjectPrediction = false;
 
 			if(m_prev_index.size() != m_GlobalPathsToUse.size())
 			{
@@ -575,6 +580,7 @@ void TrajectoryEvalCore::MainLoop()
 						l.is_blocked = best_lane_costs.bBlocked;
 						l.lane_index = best_lane_costs.index;
 						l.lane_id = best_lane_costs.lane_index;
+						l.increment = m_trajectoryID;
 
 						pub_TrajectoryCost.publish(l);
 						pub_LocalWeightedTrajectories.publish(local_lanes);

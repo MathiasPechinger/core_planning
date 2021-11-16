@@ -52,7 +52,7 @@ MotionPrediction::MotionPrediction()
 //	sub_StepSignal = nh.subscribe("/pred_step_signal", 		1, &MotionPrediction::callbackGetStepForwardSignals, 		this);
 	sub_tracked_objects		= nh.subscribe(m_TrackedObjectsTopicName, 	1,	&MotionPrediction::callbackGetTrackedObjects, 		this);
 	sub_current_pose 		= nh.subscribe("/current_pose", 1,	&MotionPrediction::callbackGetCurrentPose, 		this);
-	sub_current_trajectory 	= nh.subscribe("/op_local_selected_trajectory", 	1,	&MotionPrediction::callbackGetCurrentTrajectory, this);
+	sub_current_trajectory 	= nh.subscribe("/op_local_evaluation_trajectory", 	1,	&MotionPrediction::callbackGetCurrentTrajectory, this);
 
 
 	m_VelHandler.InitVelocityHandler(nh, m_CarInfo, &m_VehicleStatus, &m_CurrentPos);
@@ -253,6 +253,8 @@ void MotionPrediction::callbackGetTrackedObjects(const autoware_msgs::DetectedOb
 	}
 
 	m_PredictedResultsResults.header.stamp = ros::Time().now();
+	if (m_PredictedResultsResults.objects.size()!=0)
+		m_PredictedResultsResults.objects.at(0).header.seq = m_localTrajectoryID; // send trajectoryID by using the sequence
 	pub_predicted_objects_trajectories.publish(m_PredictedResultsResults);
 
 	VisualizePrediction(m_PredictBeh.m_ParticleInfo, false);
@@ -400,6 +402,7 @@ void MotionPrediction::VisualizePrediction(std::vector<PlannerHNS::ObjParticles*
 void MotionPrediction::callbackGetCurrentTrajectory(const autoware_msgs::LaneConstPtr &msg)
 {
 	m_localTrajectory.clear();
+	m_localTrajectoryID = msg->increment;
 	PlannerHNS::ROSHelpers::ConvertFromAutowareLaneToLocalLane(*msg, m_localTrajectory);
 	// std::cout << "Receive new Trajectory From Behavior Selector : " << msg->waypoints.size() << std::endl;
 	// bNewTrajectory = true;
@@ -407,7 +410,8 @@ void MotionPrediction::callbackGetCurrentTrajectory(const autoware_msgs::LaneCon
 
 void MotionPrediction::MainLoop()
 {
-	ros::Rate loop_rate(m_rosrate);
+	// the predictor needs to run at least twice as fast as the behavior selector!
+	ros::Rate loop_rate(m_rosrate*10);
 
 	while (ros::ok())
 	{
