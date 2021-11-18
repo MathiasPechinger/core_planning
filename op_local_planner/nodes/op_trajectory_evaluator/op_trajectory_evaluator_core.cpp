@@ -266,7 +266,6 @@ void TrajectoryEvalCore::callbackGetPredictedObjects(const autoware_msgs::Detect
 {
 	m_PredictedObjects.clear();
 	bPredictedObjects = true;
-	bNewObjectPrediction = true;
 	if (msg->objects.size()!=0)
 		m_trajectoryID = msg->objects.at(0).header.seq;
 
@@ -410,7 +409,7 @@ bool TrajectoryEvalCore::FindBestLane(std::vector<PlannerHNS::TrajectoryCost> tc
 void TrajectoryEvalCore::MainLoop()
 {
 	// the predictor needs to run at least twice as fast as the behavior selector!
-	ros::Rate loop_rate(m_rosrate*10);
+	ros::Rate loop_rate(m_rosrate*4);
 
 	PlannerHNS::WayPoint prevState, state_change;
 
@@ -418,11 +417,9 @@ void TrajectoryEvalCore::MainLoop()
 	{
 		ros::spinOnce();
 
-
-		if(bNewCurrentPos && bNewObjectPrediction)
+		if(bNewCurrentPos)
 		{
 			m_GlobalPathSections.clear();
-			bNewObjectPrediction = false;
 
 			if(m_prev_index.size() != m_GlobalPathsToUse.size())
 			{
@@ -451,8 +448,6 @@ void TrajectoryEvalCore::MainLoop()
 				visualization_msgs::Marker safety_box;
 				std::vector<PlannerHNS::WayPoint> collision_points;
 				visualization_msgs::MarkerArray all_rollOuts;
-//				std::vector<std::vector<std::vector<PlannerHNS::WayPoint> > > collected_local_roll_outs;
-//				std::vector<std::vector<PlannerHNS::TrajectoryCost> > collected_trajectory_costs;
 
 				if(!m_PlanningParams.enableLaneChange)
 				{
@@ -548,9 +543,6 @@ void TrajectoryEvalCore::MainLoop()
 								lane.lane_id = ig;
 								local_lanes.lanes.push_back(lane);
 						}
-
-//						collected_local_roll_outs.push_back(m_TrajectoryCostsCalculator.local_roll_outs_);
-//						collected_trajectory_costs.push_back(m_TrajectoryCostsCalculator.trajectory_costs_);
 
 						PlannerHNS::ROSHelpers::TrajectoriesToColoredMarkers(m_TrajectoryCostsCalculator.local_roll_outs_, m_TrajectoryCostsCalculator.trajectory_costs_, temp_tc.index, all_rollOuts);
 						collision_points.insert(collision_points.end(), m_TrajectoryCostsCalculator.collision_points_.begin(), m_TrajectoryCostsCalculator.collision_points_.end());

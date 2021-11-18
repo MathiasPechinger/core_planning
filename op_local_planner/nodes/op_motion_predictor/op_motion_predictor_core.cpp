@@ -29,6 +29,7 @@ MotionPrediction::MotionPrediction()
 	m_DistanceBetweenCurbs = 1.0;
 	m_VisualizationTime = 0.25;
 	m_bGoNextStep = false;
+	bNewObjects = false;
 
 	ros::NodeHandle _nh;
 	UpdatePlanningParams(_nh);
@@ -184,6 +185,7 @@ void MotionPrediction::callbackGetTrackedObjects(const autoware_msgs::DetectedOb
 {
 	UtilityHNS::UtilityH::GetTickCount(m_SensingTimer);
 
+	bNewObjects = true;
 	autoware_msgs::DetectedObjectArray globalObjects;
 	std::string source_data_frame = msg->header.frame_id;
 	std::string target_prediction_frame = "/map";
@@ -201,8 +203,6 @@ void MotionPrediction::callbackGetTrackedObjects(const autoware_msgs::DetectedOb
 		globalObjects = *msg;
 	}
 
-//	std::cout << std::endl << "New : " << globalObjects.objects.size() << ", Old: " << m_TrackedObjects.size() << std::endl << std::endl;
-
 	m_TrackedObjects.clear();
 	bTrackedObjects = true;
 
@@ -214,6 +214,13 @@ void MotionPrediction::callbackGetTrackedObjects(const autoware_msgs::DetectedOb
 			PlannerHNS::ROSHelpers::ConvertFromAutowareDetectedObjectToOpenPlannerDetectedObject(globalObjects.objects.at(i), obj);
 			m_TrackedObjects.push_back(obj);
 		}
+	}
+
+	if (m_TrackedObjects.size() == 0){
+		// this empty object is needed to send the valid trajectory ID
+		autoware_msgs::DetectedObject emptyObject;
+		m_PredictedResultsResults.objects.push_back(emptyObject);
+		return;
 	}
 
 	// used for simulation and debugging
@@ -255,7 +262,6 @@ void MotionPrediction::callbackGetTrackedObjects(const autoware_msgs::DetectedOb
 	m_PredictedResultsResults.header.stamp = ros::Time().now();
 	if (m_PredictedResultsResults.objects.size()!=0)
 		m_PredictedResultsResults.objects.at(0).header.seq = m_localTrajectoryID; // send trajectoryID by using the sequence
-	pub_predicted_objects_trajectories.publish(m_PredictedResultsResults);
 
 	VisualizePrediction(m_PredictBeh.m_ParticleInfo, false);
 	VisualizePrediction(m_PredictBeh.m_EgoInfo, true);
@@ -404,14 +410,19 @@ void MotionPrediction::callbackGetCurrentTrajectory(const autoware_msgs::LaneCon
 	m_localTrajectory.clear();
 	m_localTrajectoryID = msg->increment;
 	PlannerHNS::ROSHelpers::ConvertFromAutowareLaneToLocalLane(*msg, m_localTrajectory);
-	// std::cout << "Receive new Trajectory From Behavior Selector : " << msg->waypoints.size() << std::endl;
-	// bNewTrajectory = true;
+	if (bNewObjects){
+		m_PredictedResultsResults.objects.at(0).header.seq = m_localTrajectoryID;
+		pub_predicted_objects_trajectories.publish(m_PredictedResultsResults);
+		bNewObjects = false;
+	}
+
 }
 
 void MotionPrediction::MainLoop()
 {
 	// the predictor needs to run at least twice as fast as the behavior selector!
-	ros::Rate loop_rate(m_rosrate*10);
+	// this one is running asynchronus so it should not matter
+	ros::Rate loop_rate(m_rosrate*2);
 
 	while (ros::ok())
 	{

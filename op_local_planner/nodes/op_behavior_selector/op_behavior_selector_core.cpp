@@ -41,7 +41,7 @@ BehaviorGen::BehaviorGen()
 	bNewBestCost = false;
 	m_bRequestNewPlanSent = false;
 	m_bShowActualDrivingPath = false;
-	m_EvaluationID = 0;
+	m_EvaluationID = 42;
 
 	ros::NodeHandle _nh;
 	UpdatePlanningParams(_nh);
@@ -635,7 +635,7 @@ void BehaviorGen::SendLocalPlanningTopics()
 
 	bool trajectoryEvalValid = true;
 	if (m_LocalTrajectoryIdReceived != m_EvaluationID-1){
-		ROS_ERROR("Trajectory Evaluation to INVALID!");
+		ROS_WARN("WARNING: Last trajectory evaluation was to slow! SendID: %i, RecvID: %i)",m_EvaluationID-1,m_LocalTrajectoryIdReceived);
 		trajectoryEvalValid = false;
 	}
 
@@ -777,7 +777,7 @@ void BehaviorGen::MainLoop()
 			m_MapHandler.LoadMap(m_Map, m_PlanningParams.enableLaneChange);
 		}
 
-		if(bNewCurrentPos && m_GlobalPathsToUse.size() > 0 && bNewBestCost)
+		if(bNewCurrentPos && m_GlobalPathsToUse.size() > 0)
 		{
 			bNewBestCost = false;
 

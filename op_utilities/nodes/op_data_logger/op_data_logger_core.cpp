@@ -592,7 +592,7 @@ void OpenPlannerDataLogger::callbackGetGlobalPlannerPath(const autoware_msgs::La
 
 			}
 
-			std::cout << "Received New Global Path Selector! " << std::endl;
+			// std::cout << "Received New Global Path Selector! " << std::endl;
 		}
 		else
 		{

@@ -53,6 +53,7 @@ protected:
 
 	std::vector<PlannerHNS::DetectedObject> m_TrackedObjects;
 	bool bTrackedObjects;
+	bool bNewObjects;
 
 	PlannerHNS::RoadNetwork m_Map;
 
