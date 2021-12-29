@@ -118,6 +118,7 @@ BehaviorGen::~BehaviorGen()
 
 void BehaviorGen::UpdatePlanningParams(ros::NodeHandle& _nh)
 {
+	_nh.getParam("/op_behavior_selector/useSmartInfrastructure", m_VehicleStatus.bUseSmartInfrastructure);
 	_nh.getParam("/op_common_params/control_frequency", m_ControlFrequency);
 	_nh.getParam("/op_common_params/enableSwerving", m_PlanningParams.enableSwerving);
 	if(m_PlanningParams.enableSwerving)
